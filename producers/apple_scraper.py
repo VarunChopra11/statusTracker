@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 
 import httpx
-from core.logger import logger
+# from core.logger import logger
 from producers.config import GATEWAY_WEBHOOK_BASE_URL
 
 
@@ -72,10 +72,10 @@ async def scrape_apple_status() -> None:
 
                 # Always extract and log the JSON (for development)
                 data = _extract_json(response.text)
-                if data:
-                    logger.info(f"[apple_scraper] Extracted JSON:\n{json.dumps(data, indent=2)}")
-                else:
-                    logger.warning("[apple_scraper] Could not parse JSON from response.")
+                # if data:
+                #     logger.info(f"[apple_scraper] Extracted JSON:\n{json.dumps(data, indent=2)}")
+                # else:
+                #     logger.warning("[apple_scraper] Could not parse JSON from response.")
 
                 current_hash = _md5(response.content)
 
