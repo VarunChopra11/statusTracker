@@ -26,13 +26,14 @@ A scalable, event driven Python application that monitors service status pages, 
 
 ## Solution
 
-Monitoring multiple status pages using continuous polling leads to rate limits, wasted resources, and dropped connections under load. A synchronous script would bottleneck when multiple providers update simultaneously.
+Monitoring multiple status pages using continuous polling leads to rate limits, wasted resources, and dropped connections under load. A synchronous script would bottleneck when multiple providers update simultaneously. This project implements OpenAI status tracking as the primary required, along with two additional examples Discord status and Apple Services status to demonstrate how different status page implementations can be integrated by simply adding a new adapter.
 
 **My approach** shifts from a "Pull" mindset to a "Push" mindset using an **Event-Driven, Producer-Consumer architecture**:
 
 1. **Unified Ingestion** — A FastAPI gateway exposes a single endpoint. All updates, whether pushed via native webhooks or forwarded by our background pollers, enter through this gateway.
 
 2. **Instant Acknowledgement** — The gateway does zero parsing. It accepts the JSON payload, drops it into an internal `asyncio.Queue`, and immediately returns `HTTP 202 Accepted`. This absorbs traffic bursts without timeouts.
+ **Even in worst-case scenarios where 100+ services push concurrent updates at the same instant, the queue buffers them all and the worker processes every single event without dropping a thing.**
 
 3. **Decoupled Processing** — A background consumer pulls events from the queue at its own pace, routes them to the correct provider specific adapter, normalizes the data, and outputs a clean, standardized log.
 
