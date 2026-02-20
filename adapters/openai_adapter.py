@@ -2,24 +2,45 @@ from adapters.base import BaseAdapter, NormalizedEvent
 
 
 class OpenAIAdapter(BaseAdapter):
+    """Parses pre-formatted incident envelopes from the OpenAI poller."""
+
     provider_name = "openai"
 
     def parse(self, payload: dict) -> NormalizedEvent:
-        """Parse the raw OpenAI status payload and return a NormalizedEvent."""
-        
-        page_name      = payload.get("page", {}).get("name", "Unknown Page")
-        component_name = payload.get("component", {}).get("name", "Unknown Component")
-        incident       = payload.get("incident", {})
+        # From openai_poller: "incident_type" + "incident" 
+        if "incident_type" in payload:
+            inc      = payload.get("incident", {})
+            inc_type = payload.get("incident_type", "unknown").upper()
+            comps    = inc.get("components", [])
 
-        # Build the human-friendly product string: "OpenAI API - Chat Completions"
-        product = f"{page_name} {component_name}"
+            # Product: component names or fallback to title
+            if len(comps) == 1:
+                product = f"OpenAI {comps[0]['name']}"
+            elif comps:
+                product = f"OpenAI ({len(comps)} components affected)"
+            else:
+                product = inc.get("title", "OpenAI")
 
-        # Prefer the long-form body text; fall back to the short incident name.
-        status = incident.get("body") or incident.get("name") or "No status message provided."
+            # Status: [TYPE] (Status) message
+            status_label = inc.get("status", "unknown").replace("_", " ").title()
+            message      = inc.get("message", "") or inc.get("title", "No details.")
+            status_str   = f"[{inc_type}] ({status_label}) {message}"
+
+            return NormalizedEvent(
+                product=product,
+                status=status_str,
+                provider=self.provider_name,
+                raw=payload,
+            )
+
+        # Legacy format (Atlassian webhook): "page" / "component" / "incident" 
+        page = payload.get("page", {}).get("name", "Unknown Page")
+        comp = payload.get("component", {}).get("name", "Unknown Component")
+        inc  = payload.get("incident", {})
 
         return NormalizedEvent(
-            product=product,
-            status=status,
+            product=f"{page} {comp}",
+            status=inc.get("body") or inc.get("name") or "No status message provided.",
             provider=self.provider_name,
             raw=payload,
         )

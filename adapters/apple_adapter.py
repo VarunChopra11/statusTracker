@@ -1,7 +1,7 @@
-import json
+# import json
 
 from adapters.base import BaseAdapter, NormalizedEvent
-from core.logger import logger
+# from core.logger import logger
 
 
 class AppleAdapter(BaseAdapter):
